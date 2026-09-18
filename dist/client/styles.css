@@ -5,3 +5,12 @@
 @media(max-width:800px){.profile-grid{grid-template-columns:1fr}.profile-concept{grid-row:auto}.asset-grid{grid-template-columns:1fr 1fr}.asset-grid article{min-height:160px}}
 @media(max-width:800px){.summary-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:480px){.asset-grid{grid-template-columns:1fr}.asset-grid article{min-height:0}.profile-pain p{font-size:19px}.profile-heading .advanced-tag{display:none}}
+body.dark .summary-grid,body.dark .claim-card,body.dark .mutation-flow article,body.dark .history-card{background:var(--white);color:var(--ink)}
+body.dark .claim-top{background:#1b2621}
+body.dark .evidence-card{background:#131c18;color:var(--ink)}
+body.dark .demo-flag{background:var(--green2);color:#b9c4bf}
+body.dark .status.supported{color:#8ee6c1;background:#173a2d}
+body.dark .status.misleading{color:#ffd29f;background:#4b2d18}
+body.dark .status.unverified{color:#d4ddd8;background:#2a3530}
+body.dark .trust-row span{background:rgba(24,33,29,.72)}
+body.dark .input-card{border-color:#46554d}
