@@ -65,15 +65,16 @@ export async function adminFetch(request,env,url) {
 
   try {
     if(pathname==='/api/admin/reports' && request.method==='GET') {
-      const limit=Math.max(1,Math.min(50,Number(url.searchParams.get('limit'))||20));
-      const offset=Math.max(0,Math.min(100000,Number(url.searchParams.get('offset'))||0));
-      const total=await env.DB.prepare('SELECT COUNT(*) AS total FROM reports').first();
-      const results=await env.DB.prepare('SELECT id,title,analyzed_at AS analyzedAt,source_type AS sourceType,cached,created_at AS createdAt FROM reports ORDER BY created_at DESC LIMIT ? OFFSET ?').bind(limit,offset).all();
+      const limit=Math.floor(Math.max(1,Math.min(50,Number(url.searchParams.get('limit'))||20)));
+      const offset=Math.floor(Math.max(0,Math.min(100000,Number(url.searchParams.get('offset'))||0)));
+      const cutoff=Math.floor(Date.now()/1000)-REPORT_TTL_SECONDS;
+      const total=await env.DB.prepare('SELECT COUNT(*) AS total FROM reports WHERE created_at >= ?').bind(cutoff).first();
+      const results=await env.DB.prepare('SELECT id,title,analyzed_at AS analyzedAt,source_type AS sourceType,cached,created_at AS createdAt FROM reports WHERE created_at >= ? ORDER BY created_at DESC LIMIT ? OFFSET ?').bind(cutoff,limit,offset).all();
       return respond({total:Number(total?.total||0),reports:results.results||[]});
     }
     const reportMatch=pathname.match(/^\/api\/admin\/reports\/([0-9a-f-]{36})$/);
     if(reportMatch && request.method==='GET') {
-      const row=await env.DB.prepare('SELECT id,title,report_json,analyzed_at,source_type,cached,created_at FROM reports WHERE id = ?').bind(reportMatch[1]).first();
+      const row=await env.DB.prepare('SELECT id,title,report_json,analyzed_at,source_type,cached,created_at FROM reports WHERE id = ? AND created_at >= ?').bind(reportMatch[1],Math.floor(Date.now()/1000)-REPORT_TTL_SECONDS).first();
       if(!row)return respond({error:'找不到報告。'},404);
       return respond({report:{id:row.id,title:row.title,data:JSON.parse(row.report_json),analyzedAt:row.analyzed_at,sourceType:row.source_type,cached:Boolean(row.cached),createdAt:row.created_at}});
     }
