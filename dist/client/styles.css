@@ -14,3 +14,4 @@ body.dark .status.misleading{color:#ffd29f;background:#4b2d18}
 body.dark .status.unverified{color:#d4ddd8;background:#2a3530}
 body.dark .trust-row span{background:rgba(24,33,29,.72)}
 body.dark .input-card{border-color:#46554d}
+.privacy-note{font-size:12px;line-height:1.55;color:var(--muted);margin:16px 0 0}

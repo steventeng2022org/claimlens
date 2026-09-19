@@ -18,3 +18,24 @@ export const analysisCache = sqliteTable("analysis_cache", {
 }, (table) => [
   index("idx_analysis_cache_expires_at").on(table.expiresAt),
 ]);
+
+export const reports = sqliteTable("reports", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  reportJson: text("report_json").notNull(),
+  analyzedAt: integer("analyzed_at").notNull(),
+  sourceType: text("source_type").notNull(),
+  cached: integer("cached").notNull().default(0),
+  createdAt: integer("created_at").notNull(),
+}, (table) => [
+  index("idx_reports_created_at").on(table.createdAt),
+]);
+
+export const apiKeys = sqliteTable("api_keys", {
+  id: text("id").primaryKey(),
+  label: text("label").notNull(),
+  encryptedKey: text("encrypted_key").notNull(),
+  iv: text("iv").notNull(),
+  active: integer("active").notNull().default(0),
+  createdAt: integer("created_at").notNull(),
+});
