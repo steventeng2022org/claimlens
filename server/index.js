@@ -1,4 +1,5 @@
 import { activeApiKey, adminFetch, saveReport } from './admin.js';
+import { clientIp } from './proxy-ip.js';
 
 const DAILY_LIMIT = 20;
 const CACHE_TTL_SECONDS = 86400;
@@ -22,7 +23,7 @@ function quotaHeaders(count) { return {'x-ratelimit-limit':String(DAILY_LIMIT),'
 
 async function consumeDailyQuota(env, request) {
   if(!env.DB) throw new Error('D1 binding DB is unavailable');
-  const ip=request.headers.get('cf-connecting-ip')||'unknown';
+  const ip=await clientIp(request,env);
   const ipHash=await sha256(ip);
   const now=Math.floor(Date.now()/1000);
   const row=await env.DB.prepare(`INSERT INTO daily_usage (ip_hash, day, request_count, updated_at) VALUES (?, ?, 1, ?) ON CONFLICT(ip_hash, day) DO UPDATE SET request_count = daily_usage.request_count + 1, updated_at = excluded.updated_at RETURNING request_count`).bind(ipHash,taipeiDay(),now).first();

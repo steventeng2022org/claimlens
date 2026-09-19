@@ -1,4 +1,5 @@
 import { adminPage } from './admin-page.js';
+import { verifiedAccessEmail } from './access.js';
 
 const REPORT_TTL_SECONDS = 30 * 86400;
 const securityHeaders = {'cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'no-referrer','x-frame-options':'DENY'};
@@ -6,7 +7,11 @@ const respond = (data,status=200) => new Response(JSON.stringify(data),{status,h
 const b64url = bytes => btoa(String.fromCharCode(...bytes)).replaceAll('+','-').replaceAll('/','_').replaceAll('=','');
 const unb64url = text => Uint8Array.from(atob(text.replaceAll('-','+').replaceAll('_','/')),char=>char.charCodeAt(0));
 
-function isAdmin(request,env) {
+async function isAdmin(request,env) {
+  if(env.CF_ACCESS_AUD) {
+    const email=await verifiedAccessEmail(request,env);
+    return Boolean(email && email===env.CF_ACCESS_ADMIN_EMAIL?.toLowerCase());
+  }
   return Boolean(env.ADMIN_OWNER_ID && request.headers.get('oai-authenticated-user-id')===env.ADMIN_OWNER_ID);
 }
 
@@ -53,15 +58,15 @@ export async function adminFetch(request,env,url) {
   const pathname=url.pathname;
   if(pathname==='/admin') {
     if(request.method!=='GET')return new Response('Method not allowed',{status:405,headers:securityHeaders});
-    if(!env.ADMIN_OWNER_ID)return new Response('Admin is not configured',{status:503,headers:securityHeaders});
-    if(!request.headers.get('oai-authenticated-user-id'))return Response.redirect(new URL('/signin-with-chatgpt?return_to=%2Fadmin',url),302);
-    if(!isAdmin(request,env))return new Response('Not authorized',{status:403,headers:securityHeaders});
+    if(!env.CF_ACCESS_AUD && !env.ADMIN_OWNER_ID)return new Response('Admin is not configured',{status:503,headers:securityHeaders});
+    if(!env.CF_ACCESS_AUD && !request.headers.get('oai-authenticated-user-id'))return Response.redirect(new URL('/signin-with-chatgpt?return_to=%2Fadmin',url),302);
+    if(!(await isAdmin(request,env)))return new Response('Not authorized',{status:403,headers:securityHeaders});
     return new Response(adminPage,{headers:{...securityHeaders,'content-type':'text/html; charset=utf-8','content-security-policy':"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"}});
   }
-  if(!isAdmin(request,env))return respond({error:'沒有管理權限。'},403);
+  if(!(await isAdmin(request,env)))return respond({error:'沒有管理權限。'},403);
   if(!env.DB)return respond({error:'資料庫暫時無法使用。'},503);
   if(!['GET','POST','DELETE'].includes(request.method))return respond({error:'不支援的要求。'},405);
-  if(request.method!=='GET' && request.headers.get('origin')!==url.origin)return respond({error:'來源驗證失敗。'},403);
+  if(request.method!=='GET' && request.headers.get('origin')!==(env.CF_ACCESS_AUD?env.PUBLIC_ORIGIN:url.origin))return respond({error:'來源驗證失敗。'},403);
 
   try {
     if(pathname==='/api/admin/reports' && request.method==='GET') {
