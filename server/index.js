@@ -12,7 +12,7 @@ const schema = {type:'object',additionalProperties:false,required:['title','clai
 function json(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {status, headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store',...extraHeaders}});
 }
-function validInput(value) { return typeof value === 'string' && value.trim().length >= 8 && value.length <= 12000; }
+function validInput(value) { return typeof value === 'string' && value.trim().length >= 8; }
 function collectText(data) { if(data.output_text) return data.output_text; return (data.output||[]).filter(x=>x.type==='message').flatMap(x=>x.content||[]).filter(x=>x.type==='output_text').map(x=>x.text).join(''); }
 function allowedUrls(data) { const urls=new Set(); for(const item of data.output||[]){if(item.type==='web_search_call'){for(const source of item.action?.sources||[])if(source.url)urls.add(source.url);}for(const content of item.content||[])for(const annotation of content.annotations||[])if(annotation.type==='url_citation'&&annotation.url)urls.add(annotation.url);} return urls; }
 function normalizeEvidenceUrl(value) { try { const url=new URL(value); url.hash=''; return url.href.replace(/\/$/,''); } catch { return ''; } }
@@ -52,7 +52,7 @@ async function analyze(request, env) {
   let body;
   try { body=await request.json(); } catch { return json({error:'要求格式不正確。'},400); }
   const input=body?.input;
-  if(!validInput(input))return json({error:'請輸入 8 至 12,000 個字元的文字或網址。'},400);
+  if(!validInput(input))return json({error:'請至少輸入 8 個字元的文字或網址。'},400);
 
   let count;
   try { count=await consumeDailyQuota(env,request); }
@@ -76,7 +76,7 @@ async function analyze(request, env) {
   const timeout=setTimeout(()=>controller.abort(),45000);
   let response;
   try {
-    response=await fetch('https://api.openai.com/v1/responses',{method:'POST',signal:controller.signal,headers:{authorization:`Bearer ${apiKey}`,'content-type':'application/json'},body:JSON.stringify({model:'gpt-5.6-luna',reasoning:{effort:'none'},store:false,max_output_tokens:3500,include:['web_search_call.action.sources'],tools:[{type:'web_search',search_context_size:'low',user_location:{type:'approximate',country:'TW',timezone:'Asia/Taipei'}}],tool_choice:'auto',input:prompt,text:{format:{type:'json_schema',name:'claimlens_report',strict:true,schema}}})});
+    response=await fetch('https://api.openai.com/v1/responses',{method:'POST',signal:controller.signal,headers:{authorization:`Bearer ${apiKey}`,'content-type':'application/json'},body:JSON.stringify({model:'gpt-5.6-luna',reasoning:{effort:'none'},store:false,include:['web_search_call.action.sources'],tools:[{type:'web_search',search_context_size:'low',user_location:{type:'approximate',country:'TW',timezone:'Asia/Taipei'}}],tool_choice:'auto',input:prompt,text:{format:{type:'json_schema',name:'claimlens_report',strict:true,schema}}})});
   } catch(error) { return json({error:error?.name==='AbortError'?'分析時間較長，請再試一次；系統會重新搜尋來源。':'目前無法連線到分析服務，請稍後再試。'},error?.name==='AbortError'?504:502,headers); }
   finally { clearTimeout(timeout); }
 

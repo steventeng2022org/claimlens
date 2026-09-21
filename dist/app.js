@@ -10,7 +10,7 @@ function showToast(msg){toast.textContent=msg;toast.classList.add('show');setTim
 function route(id){$$('.view').forEach(v=>v.classList.remove('active-view'));$('#'+id).classList.add('active-view');$$('.topbar nav a').forEach(a=>a.classList.toggle('active',a.hash==='#'+id));window.scrollTo({top:0,behavior:'smooth'});if(id==='history') renderHistory()}
 function setMode(mode){$$('.mode-tab').forEach(b=>{let on=b.dataset.mode===mode;b.classList.toggle('active',on);b.setAttribute('aria-selected',on)});input.placeholder=mode==='url'?'貼上文章網址，例如：https://example.com/article':'例如：網路文章聲稱，某項政策將於 10 月 1 日生效，並影響 200 萬人……'}
 $$('.mode-tab').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
-input.addEventListener('input',()=>{$('#charCount').textContent=`${input.value.length.toLocaleString()} / 5,000 字`;if(input.value.length>5000)input.value=input.value.slice(0,5000)});
+input.addEventListener('input',()=>{$('#charCount').textContent=`${input.value.length.toLocaleString()} 字`});
 $('#clearBtn').onclick=()=>{input.value='';input.dispatchEvent(new Event('input'));input.focus()};
 $('#exampleBtn').onclick=()=>{setMode('text');input.value=demoText;input.dispatchEvent(new Event('input'));input.focus();showToast('已載入示範案例')};
 $$('.back-btn').forEach(b=>b.onclick=()=>route('home'));
